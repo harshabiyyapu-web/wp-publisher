@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Group {
+  id        Int      @id @default(autoincrement())
+  name      String
+  geography String
+  color     String   @default("#6366f1")
+  sites     Site[]
+  createdAt DateTime @default(now())
+}
+
+model Site {
+  id        Int      @id @default(autoincrement())
+  name      String
+  url       String   @unique
+  token     String
+  groupId   Int?
+  group     Group?   @relation(fields: [groupId], references: [id])
+  language  String   @default("english")
+  createdAt DateTime @default(now())
+  pubJobs   PubJob[]
+}
+
+model Article {
+  id           Int      @id @default(autoincrement())
+  sourceUrl    String
+  scrapedTitle String
+  createdAt    DateTime @default(now())
+  pubJobs      PubJob[]
+}
+
+model PubJob {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  article   Article  @relation(fields: [articleId], references: [id])
+  siteId    Int
+  site      Site     @relation(fields: [siteId], references: [id])
+  status    String   @default("pending")
+  wpPostId  Int?
+  permalink String?
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}

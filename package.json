@@ -9,7 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.5.0",
+    "@prisma/client": "^7.5.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cheerio": "^0.22.35",
+    "better-sqlite3": "^12.8.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1",
     "next": "16.2.1",
+    "node-fetch": "^3.3.2",
+    "prisma": "^7.5.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
