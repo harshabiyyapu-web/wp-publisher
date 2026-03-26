@@ -59,7 +59,11 @@ function initDatabase() {
   db.close();
 }
 
-initDatabase();
+try {
+  initDatabase();
+} catch {
+  // /data directory doesn't exist during `next build` — runs correctly at runtime
+}
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
