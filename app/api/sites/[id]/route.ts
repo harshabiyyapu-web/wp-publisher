@@ -3,16 +3,18 @@ import { prisma } from "@/lib/db";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { name, url, token, groupId, language } = await req.json();
+  const body = await req.json();
+  // Build update data only from fields that were provided
+  const data: Record<string, unknown> = {};
+  if (body.name !== undefined) data.name = body.name;
+  if (body.url !== undefined) data.url = body.url.replace(/\/$/, "");
+  if (body.token !== undefined) data.token = body.token;
+  if (body.language !== undefined) data.language = body.language;
+  if ("groupId" in body) data.groupId = body.groupId ?? null;
+
   const site = await prisma.site.update({
     where: { id: parseInt(id) },
-    data: {
-      name,
-      url: url?.replace(/\/$/, ""),
-      token,
-      groupId: groupId ?? null,
-      language: language ?? "english",
-    },
+    data,
     include: { group: true },
   });
   return NextResponse.json(site);

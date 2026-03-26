@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface Site {
   id: number;
@@ -74,6 +74,11 @@ export default function PublisherPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
+  // Spreadsheet selection state for site selector
+  const [lastClickedSite, setLastClickedSite] = useState<number | null>(null);
+  const dragging = useRef(false);
+  const dragMode = useRef<"add" | "remove">("add");
+
   useEffect(() => {
     Promise.all([
       fetch("/api/sites").then((r) => r.json()),
@@ -112,6 +117,48 @@ export default function PublisherPage() {
 
   function selectAll() { setSelectedSiteIds(new Set(sites.map((s) => s.id))); }
   function deselectAll() { setSelectedSiteIds(new Set()); }
+
+  function handleSiteMouseDown(id: number, e: React.MouseEvent) {
+    if (isRunning) return;
+    if (e.shiftKey && lastClickedSite !== null) {
+      const ids = filteredSites.map((s) => s.id);
+      const start = ids.indexOf(lastClickedSite);
+      const end = ids.indexOf(id);
+      if (start !== -1 && end !== -1) {
+        const [lo, hi] = start < end ? [start, end] : [end, start];
+        setSelectedSiteIds((prev) => {
+          const next = new Set(prev);
+          for (let i = lo; i <= hi; i++) next.add(ids[i]);
+          return next;
+        });
+      }
+      return;
+    }
+    const isSelected = selectedSiteIds.has(id);
+    dragMode.current = isSelected ? "remove" : "add";
+    dragging.current = true;
+    setSelectedSiteIds((prev) => {
+      const next = new Set(prev);
+      if (isSelected) next.delete(id); else next.add(id);
+      return next;
+    });
+    setLastClickedSite(id);
+  }
+
+  function handleSiteMouseEnter(id: number) {
+    if (!dragging.current || isRunning) return;
+    setSelectedSiteIds((prev) => {
+      const next = new Set(prev);
+      if (dragMode.current === "add") next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    const up = () => { dragging.current = false; };
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, []);
 
   async function startPublish() {
     const sourceUrls = urlsText.split("\n").map((u) => u.trim()).filter(Boolean);
@@ -171,6 +218,10 @@ export default function PublisherPage() {
     setIsRunning(false);
     setIsDone(true);
   }
+
+  // Site selector group filter
+  const [siteGroupFilter, setSiteGroupFilter] = useState<number | null>(null);
+  const filteredSites = siteGroupFilter ? sites.filter((s) => s.groupId === siteGroupFilter) : sites;
 
   // Group published links by site
   const filteredLinks = resultGroupFilter
@@ -401,76 +452,136 @@ export default function PublisherPage() {
           )}
         </div>
 
-        {/* Right column: site selector */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col h-fit max-h-[calc(100vh-8rem)] sticky top-6">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-800">Select Sites</h2>
-              <p className="text-xs text-slate-400 mt-0.5">{selectedSiteIds.size} of {sites.length} selected</p>
+        {/* Right column: site selector — spreadsheet style */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-fit max-h-[calc(100vh-8rem)] sticky top-6 overflow-hidden"
+          onMouseUp={() => { dragging.current = false; }}>
+
+          {/* Header */}
+          <div className="px-4 pt-4 pb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-800">Select Sites</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {selectedSiteIds.size} of {sites.length} selected
+                  {selectedSiteIds.size > 0 && <span className="ml-1 text-indigo-500 font-medium">· {selectedSiteIds.size} ready</span>}
+                </p>
+              </div>
+              <div className="flex gap-2 text-xs">
+                <button onClick={selectAll} disabled={isRunning} className="font-medium" style={{ color: "#6366f1" }}>All</button>
+                <span className="text-slate-300">·</span>
+                <button onClick={deselectAll} disabled={isRunning} className="text-slate-400 hover:text-slate-600">None</button>
+              </div>
             </div>
-            <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="font-medium" style={{ color: "#6366f1" }}>All</button>
-              <span className="text-slate-300">·</span>
-              <button onClick={deselectAll} className="text-slate-400 hover:text-slate-600">None</button>
-            </div>
+
+            {/* Group filter pills */}
+            {groups.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => setSiteGroupFilter(null)}
+                  className="px-2 py-0.5 text-xs font-medium rounded-full border transition-all"
+                  style={{
+                    borderColor: siteGroupFilter === null ? "#6366f1" : "#e2e8f0",
+                    background: siteGroupFilter === null ? "#6366f1" : "transparent",
+                    color: siteGroupFilter === null ? "#fff" : "#64748b",
+                  }}
+                >All</button>
+                {groups.map((g) => {
+                  const active = siteGroupFilter === g.id;
+                  return (
+                    <button key={g.id}
+                      onClick={() => setSiteGroupFilter(active ? null : g.id)}
+                      className="px-2 py-0.5 text-xs font-medium rounded-full border transition-all"
+                      style={{
+                        borderColor: g.color,
+                        background: active ? g.color : "transparent",
+                        color: active ? "#fff" : g.color,
+                      }}
+                    >{g.name}</button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Group filter buttons */}
-          {groups.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-slate-100">
-              {groups.map((g) => {
-                const groupSiteIds = sites.filter((s) => s.groupId === g.id).map((s) => s.id);
-                const allSelected = groupSiteIds.length > 0 && groupSiteIds.every((id) => selectedSiteIds.has(id));
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => selectGroup(g.id)}
-                    className="px-2.5 py-1 text-xs font-medium rounded-full border transition-all"
-                    style={{
-                      borderColor: g.color,
-                      color: allSelected ? "#fff" : g.color,
-                      background: allSelected ? g.color : "transparent",
-                    }}
-                  >
-                    {g.name}
-                  </button>
-                );
-              })}
+          {/* Spreadsheet column headers */}
+          {sites.length > 0 && (
+            <div className="grid text-xs font-semibold text-slate-400 uppercase tracking-wide px-2 py-1.5 border-b border-slate-100 bg-slate-50"
+              style={{ gridTemplateColumns: "28px 1fr auto" }}>
+              <div className="flex items-center justify-center">
+                <input type="checkbox"
+                  checked={selectedSiteIds.size === filteredSites.length && filteredSites.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedSiteIds((p) => { const n = new Set(p); filteredSites.forEach((s) => n.add(s.id)); return n; });
+                    else setSelectedSiteIds((p) => { const n = new Set(p); filteredSites.forEach((s) => n.delete(s.id)); return n; });
+                  }}
+                  disabled={isRunning}
+                  style={{ accentColor: "#6366f1" }}
+                />
+              </div>
+              <div>Site</div>
+              <div>Group</div>
             </div>
           )}
 
-          {/* Site checkboxes */}
-          <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
+          {/* Spreadsheet rows */}
+          <div className="flex-1 overflow-y-auto min-h-0" style={{ userSelect: "none" }}>
             {sites.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-xs text-slate-400">No sites yet.</p>
                 <a href="/sites" className="text-xs font-medium mt-1 block" style={{ color: "#6366f1" }}>Add your first site →</a>
               </div>
             ) : (
-              sites.map((site) => (
-                <label key={site.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedSiteIds.has(site.id)}
-                    onChange={() => toggleSite(site.id)}
-                    disabled={isRunning}
-                    className="rounded border-slate-300"
-                    style={{ accentColor: "#6366f1" }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-800 truncate">{site.name}</p>
-                    <p className="text-xs text-slate-400 truncate">{site.url}</p>
+              filteredSites.map((site, idx) => {
+                const isSel = selectedSiteIds.has(site.id);
+                return (
+                  <div key={site.id}
+                    onMouseDown={(e) => handleSiteMouseDown(site.id, e)}
+                    onMouseEnter={() => handleSiteMouseEnter(site.id)}
+                    className="grid items-center px-2 py-2 border-b border-slate-50 transition-colors"
+                    style={{
+                      gridTemplateColumns: "28px 1fr auto",
+                      background: isSel ? "#eef2ff" : idx % 2 === 0 ? "#fff" : "#f8fafc",
+                      cursor: isRunning ? "default" : "pointer",
+                      outline: isSel ? "1px solid #a5b4fc" : "none",
+                      outlineOffset: "-1px",
+                    }}
+                  >
+                    {/* Checkbox */}
+                    <div className="flex items-center justify-center">
+                      <input type="checkbox" checked={isSel} onChange={() => {}}
+                        onClick={(e) => { e.stopPropagation(); if (!isRunning) toggleSite(site.id); }}
+                        disabled={isRunning}
+                        style={{ accentColor: "#6366f1", cursor: isRunning ? "default" : "pointer" }}
+                      />
+                    </div>
+                    {/* Site name + url */}
+                    <div className="min-w-0 pr-2">
+                      <p className="text-xs font-semibold text-slate-800 truncate">{site.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{site.url}</p>
+                    </div>
+                    {/* Group badge */}
+                    <div className="flex-shrink-0">
+                      {site.group ? (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap"
+                          style={{ background: site.group.color + "22", color: site.group.color }}>
+                          {site.group.name}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-200">—</span>
+                      )}
+                    </div>
                   </div>
-                  {site.group && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium"
-                      style={{ background: site.group.color + "22", color: site.group.color }}>
-                      {site.group.name}
-                    </span>
-                  )}
-                </label>
-              ))
+                );
+              })
             )}
           </div>
+
+          {/* Hint */}
+          {sites.length > 0 && (
+            <div className="px-4 py-2 border-t border-slate-100 bg-slate-50">
+              <p className="text-xs text-slate-400">Click or drag · Shift+click for range</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
