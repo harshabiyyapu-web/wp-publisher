@@ -126,13 +126,18 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
 
 /**
  * Strip site name from title tag: "Article Title - Site Name" → "Article Title"
- * Handles separators: " - ", " | ", " – ", " — "
+ * Finds the LAST separator and returns everything before it.
+ * Handles: " - ", " | ", " – ", " — " and site names containing hyphens.
  */
 function stripSiteNameSuffix(title: string): string {
-  // Match the last occurrence of a separator followed by text (the site name)
-  const match = title.match(/^(.+?)\s+[-|–—]\s+[^-|–—]+$/);
-  if (match && match[1].trim().length >= 10) {
-    return match[1].trim();
+  const sep = /\s+[-|–—]\s+/g;
+  let lastIndex = -1;
+  let m;
+  while ((m = sep.exec(title)) !== null) {
+    lastIndex = m.index;
+  }
+  if (lastIndex > 4) {
+    return title.substring(0, lastIndex).trim();
   }
   return title;
 }
