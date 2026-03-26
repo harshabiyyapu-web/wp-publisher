@@ -14,7 +14,6 @@ export default function SettingsPage() {
     fetch("/api/settings").then((r) => r.json()).then((d) => {
       setGrokKey(d.grok_api_key === "••••••••" ? "" : (d.grok_api_key ?? ""));
       setCustomPrompt(d.custom_prompt ?? "");
-      setDashboardPw("");
     });
   }, []);
 
@@ -23,29 +22,32 @@ export default function SettingsPage() {
     const body: Record<string, string> = { custom_prompt: customPrompt };
     if (grokKey) body.grok_api_key = grokKey;
     if (dashboardPw) body.dashboard_password = dashboardPw;
-
-    await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
-  const DEFAULT_PROMPT = "";
+  const inputClass = "w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent";
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Configure your API keys and publishing preferences.</p>
+      </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* Grok API Key */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-1">Grok API Key (via OpenRouter)</h2>
-          <p className="text-xs text-gray-400 mb-3">
-            Used for all AI rewrites. Model: <code className="bg-gray-100 px-1 rounded">x-ai/grok-4.1-fast</code> via OpenRouter.
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex items-start justify-between mb-1">
+            <h2 className="text-sm font-semibold text-slate-800">OpenRouter API Key</h2>
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "#eef2ff", color: "#6366f1" }}>
+              Grok 4.1 Fast
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mb-3">
+            Used for all AI rewrites. Model: <code className="bg-slate-100 px-1 rounded text-slate-600">x-ai/grok-4.1-fast</code>
           </p>
           <div className="flex gap-2">
             <input
@@ -53,72 +55,76 @@ export default function SettingsPage() {
               placeholder="sk-or-v1-..."
               value={grokKey}
               onChange={(e) => setGrokKey(e.target.value)}
-              className="flex-1 font-mono text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`flex-1 font-mono ${inputClass}`}
             />
-            <button onClick={() => setShowKey(!showKey)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+            <button
+              onClick={() => setShowKey(!showKey)}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50 bg-white"
+            >
               {showKey ? "Hide" : "Show"}
             </button>
           </div>
         </div>
 
         {/* Custom Prompt */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-1">Custom Rewrite Prompt</h2>
-          <p className="text-xs text-gray-400 mb-3">
-            Leave blank to use the default prompt. Supports variables:{" "}
-            <code className="bg-gray-100 px-1 rounded">{"{{title_instruction}}"}</code>,{" "}
-            <code className="bg-gray-100 px-1 rounded">{"{{target_language}}"}</code>,{" "}
-            <code className="bg-gray-100 px-1 rounded">{"{{response_title_instruction}}"}</code>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <h2 className="text-sm font-semibold text-slate-800 mb-1">Custom Rewrite Prompt</h2>
+          <p className="text-xs text-slate-400 mb-3">
+            Leave blank to use the default prompt. Available variables:{" "}
+            <code className="bg-slate-100 px-1 rounded text-slate-600">{"{{title_instruction}}"}</code>,{" "}
+            <code className="bg-slate-100 px-1 rounded text-slate-600">{"{{target_language}}"}</code>
           </p>
           <textarea
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
             rows={8}
             placeholder="Leave empty to use the built-in SEO prompt identical to your WordPress plugin..."
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y font-mono"
+            className={`${inputClass} resize-y font-mono`}
           />
           {customPrompt && (
-            <button onClick={() => setCustomPrompt("")}
-              className="text-xs text-gray-500 hover:text-gray-700 mt-1">
-              Clear (use default)
+            <button onClick={() => setCustomPrompt("")} className="text-xs text-slate-400 hover:text-slate-600 mt-1.5">
+              Clear (use default prompt)
             </button>
           )}
         </div>
 
         {/* Dashboard password */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-1">Dashboard Password</h2>
-          <p className="text-xs text-gray-400 mb-3">
-            Set a password to protect this dashboard. Leave blank to keep current password.
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <h2 className="text-sm font-semibold text-slate-800 mb-1">Dashboard Password</h2>
+          <p className="text-xs text-slate-400 mb-3">
+            Protect this dashboard with a password. Leave blank to keep the current password.
           </p>
           <input
             type="password"
             placeholder="New password (leave blank to keep current)"
             value={dashboardPw}
             onChange={(e) => setDashboardPw(e.target.value)}
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
         </div>
 
-        {/* Token instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-blue-800 mb-2">How to get your WP site token</h2>
+        {/* WP Token instructions */}
+        <div className="rounded-2xl border border-blue-100 p-5" style={{ background: "linear-gradient(135deg, #eff6ff, #f0f9ff)" }}>
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">How to get your WP site token</h3>
           <ol className="text-xs text-blue-700 space-y-1.5 list-decimal list-inside">
-            <li>Make sure the updated plugin is installed on your WP site</li>
-            <li>While logged in as admin, call this URL in your browser:</li>
+            <li>Install the updated plugin on your WP site</li>
+            <li>In WP Admin, go to <strong>Tools → Available Tools</strong></li>
+            <li>Find the <strong>WP Publisher — Site Token</strong> card</li>
+            <li>Click <strong>Generate Token</strong>, then <strong>Copy Token</strong></li>
+            <li>Paste it on the <a href="/sites" style={{ color: "#1d4ed8", textDecoration: "underline" }}>Sites page</a> for that site</li>
           </ol>
-          <code className="block mt-2 bg-blue-100 text-blue-800 px-3 py-2 rounded text-xs font-mono break-all">
-            POST https://yoursite.com/wp-json/ccr/v1/generate-token
-          </code>
-          <p className="text-xs text-blue-600 mt-2">
-            This returns a secure 64-char token. Paste it in the Sites page for that WP site.
-          </p>
         </div>
 
-        <button onClick={save} disabled={saving}
-          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm disabled:opacity-50 transition-colors">
-          {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Settings"}
+        <button
+          onClick={save}
+          disabled={saving}
+          className="w-full py-3 font-semibold rounded-xl text-sm text-white transition-all disabled:opacity-50"
+          style={{
+            background: saved ? "#16a34a" : "linear-gradient(135deg, #6366f1, #7c3aed)",
+            boxShadow: saved ? "0 2px 8px rgba(22,163,74,0.3)" : "0 4px 14px rgba(99,102,241,0.4)",
+          }}
+        >
+          {saved ? "✓ Settings Saved!" : saving ? "Saving..." : "Save Settings"}
         </button>
       </div>
     </div>

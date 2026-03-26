@@ -11,11 +11,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const { name, geography, color } = await req.json();
-  if (!name || !geography) {
-    return NextResponse.json({ error: "name and geography required" }, { status: 400 });
+  if (!name) {
+    return NextResponse.json({ error: "name required" }, { status: 400 });
   }
   const group = await prisma.group.create({
-    data: { name, geography, color: color ?? "#6366f1" },
+    data: { name, geography: geography ?? "", color: color ?? "#6366f1" },
   });
   return NextResponse.json(group, { status: 201 });
 }

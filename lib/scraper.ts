@@ -35,11 +35,14 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
   $("script, style, nav, header, footer, .ad, .ads, .advertisement, .sidebar, .widget").remove();
 
   // Extract title — og:title > <title> > first h1
-  const title =
+  const rawTitle =
     $('meta[property="og:title"]').attr("content") ||
     $("title").first().text().trim() ||
     $("h1").first().text().trim() ||
     "Untitled";
+
+  // Strip site name suffix: "Article Title - Site Name" → "Article Title"
+  const title = stripSiteNameSuffix(rawTitle);
 
   // Extract content — try common article selectors
   const contentSelectors = [
@@ -119,6 +122,19 @@ export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
     imageUrl,
     imageAlt,
   };
+}
+
+/**
+ * Strip site name from title tag: "Article Title - Site Name" → "Article Title"
+ * Handles separators: " - ", " | ", " – ", " — "
+ */
+function stripSiteNameSuffix(title: string): string {
+  // Match the last occurrence of a separator followed by text (the site name)
+  const match = title.match(/^(.+?)\s+[-|–—]\s+[^-|–—]+$/);
+  if (match && match[1].trim().length >= 10) {
+    return match[1].trim();
+  }
+  return title;
 }
 
 function resolveUrl(src: string, base: string): string {
