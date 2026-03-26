@@ -1,6 +1,7 @@
 #!/bin/sh
 
-echo "Running prisma db push to initialize database..."
-DATABASE_URL="file:${DB_PATH:-/data/dev.db}" npx prisma db push --accept-data-loss && echo "Database ready." || echo "Warning: prisma db push failed, continuing anyway."
+echo "Initializing database..."
+DATABASE_URL="file:/data/dev.db" npx prisma db push --accept-data-loss && echo "Database ready." || echo "Warning: db push had issues, continuing."
 
-exec node server.js
+echo "Starting Next.js..."
+exec npx next start -p 3000 -H 0.0.0.0
