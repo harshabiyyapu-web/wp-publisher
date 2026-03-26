@@ -28,11 +28,15 @@ COPY --from=builder /app/public ./public
 # Copy Prisma generated client
 COPY --from=builder /app/app/generated ./app/generated
 
-# Copy prisma schema (needed for migrations)
+# Copy prisma schema (needed for db push)
 COPY --from=builder /app/prisma ./prisma
 
-# Copy node_modules for better-sqlite3 native bindings
+# Copy node_modules for better-sqlite3 native bindings and prisma CLI
 COPY --from=builder /app/node_modules ./node_modules
 
+# Copy entrypoint script
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
 EXPOSE 3000
-CMD ["node", "server.js"]
+ENTRYPOINT ["./entrypoint.sh"]

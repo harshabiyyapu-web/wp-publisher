@@ -7,6 +7,7 @@ services:
     environment:
       - NODE_ENV=production
       - DB_PATH=/data/dev.db
+      - DATABASE_URL=file:/data/dev.db
     volumes:
       - wp_db_data:/data
 
