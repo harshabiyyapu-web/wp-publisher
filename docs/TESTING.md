@@ -80,4 +80,15 @@ Verify:
 
 | Date | Symptom | Root Cause | Fix |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-03-26 | Coolify build fails: `prisma generate` exit code 1 | `app/generated/prisma` was in `.gitignore` — Coolify builds from a fresh git clone so the folder never exists | Removed from `.gitignore`, committed generated client; removed `npx prisma generate` from Dockerfile |
+| 2026-03-26 | 502 Bad Gateway after deploy | `output: "standalone"` in `next.config.ts` breaks native `better-sqlite3` bindings — the compiled `.so` can't load in the standalone runner | Removed `output: standalone`; Dockerfile now copies full `node_modules` and starts with `next start` |
+| 2026-03-26 | All DB queries fail: `Table 'main.Site' does not exist` | Container starts with empty `/data/dev.db` — Prisma never created tables | Added `entrypoint.sh` that runs `prisma db push` before starting the server |
+| 2026-03-26 | `prisma db push` fails silently in container | `datasource db` in schema had no `url` field — Prisma CLI didn't know which file to target | Added `url = env("DATABASE_URL")` to schema; hardcoded `DATABASE_URL=file:/data/dev.db` in `entrypoint.sh` |
+
+## Coolify Deployment Checklist
+- [ ] `app/generated/prisma/` is committed (not gitignored) — otherwise Coolify build fails
+- [ ] `next.config.ts` does NOT have `output: "standalone"` — breaks better-sqlite3 native bindings
+- [ ] `entrypoint.sh` runs `prisma db push` before `next start` — initializes empty SQLite volume
+- [ ] `datasource db` in `prisma/schema.prisma` has `url = env("DATABASE_URL")` — required by Prisma CLI
+- [ ] Docker volume `wp_db_data` is mounted at `/data` — persists DB across redeploys
+- [ ] No env vars required in Coolify — `lib/db.ts` auto-detects production path `/data/dev.db` via `NODE_ENV`
