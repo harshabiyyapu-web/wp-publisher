@@ -59,8 +59,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        {/* Top bar */}
+        <header className="flex-shrink-0 flex items-center justify-end px-6 py-3 bg-white border-b border-slate-200 sticky top-0 z-10">
+          <a
+            href="https://nh-clock.lovable.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 hover:scale-105"
+            style={{
+              background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+              boxShadow: "0 2px 12px rgba(99,102,241,0.35)",
+            }}
+          >
+            <span style={{ fontSize: "20px", lineHeight: 1 }}>🕐</span>
+            <span>Global Time</span>
+          </a>
+        </header>
+        <div className="flex-1">
+          {children}
+        </div>
       </main>
     </div>
   );
