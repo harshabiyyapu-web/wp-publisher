@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
           // Notify start
           send({ type: "rewriting", siteId: site.id, siteName: site.name, url: sourceUrl });
 
-          const siteLanguage = site.language ?? language;
+          // UI-selected language always overrides the site's stored default
+          const siteLanguage = language || site.language || "english";
 
           // Create pending PubJob
           const job = await prisma.pubJob.create({
