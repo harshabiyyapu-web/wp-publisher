@@ -7,6 +7,7 @@ const NAV = [
   { href: "/sites", label: "Sites", icon: "🌐" },
   { href: "/groups", label: "Groups", icon: "📍" },
   { href: "/history", label: "History", icon: "📋" },
+  { href: "/links", label: "Links", icon: "🔗" },
   { href: "/settings", label: "Settings", icon: "⚙️" },
 ];
 
