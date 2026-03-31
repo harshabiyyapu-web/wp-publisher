@@ -1,48 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import BetterSqlite3 from "better-sqlite3";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
 const ALLOWED_KEYS = ["grok_api_key", "custom_prompt", "dashboard_password"];
 
-export async function GET() {
-  const settings = await prisma.setting.findMany();
-  const map: Record<string, string> = {};
-  for (const s of settings) {
-    if (s.key === "grok_api_key") {
-      // Mask the key — never expose the real value over the wire
-      map[s.key] = s.value ? "••••••••" : "";
-    } else if (s.key !== "dashboard_password") {
-      map[s.key] = s.value;
-    }
-  }
+function getDb() {
+  const dbPath =
+    process.env.NODE_ENV === "production"
+      ? "/data/dev.db"
+      : path.join(process.cwd(), "dev.db");
+  return new BetterSqlite3(dbPath);
+}
 
-  return NextResponse.json(map);
+export async function GET() {
+  const db = getDb();
+  try {
+    const rows = db.prepare(`SELECT key, value FROM "Setting"`).all() as { key: string; value: string }[];
+    const map: Record<string, string> = {};
+    for (const row of rows) {
+      if (row.key === "grok_api_key") {
+        map[row.key] = row.value ? "••••••••" : "";
+      } else if (row.key !== "dashboard_password") {
+        map[row.key] = row.value;
+      }
+    }
+    return NextResponse.json(map);
+  } finally {
+    db.close();
+  }
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const updates: { key: string; value: string }[] = [];
-
-  for (const key of ALLOWED_KEYS) {
-    if (key in body && typeof body[key] === "string" && body[key].trim()) {
-      updates.push({ key, value: body[key].trim() });
+  const db = getDb();
+  try {
+    const stmt = db.prepare(
+      `INSERT INTO "Setting" (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    );
+    let saved = 0;
+    for (const key of ALLOWED_KEYS) {
+      if (key in body && typeof body[key] === "string" && body[key].trim()) {
+        stmt.run(key, body[key].trim());
+        saved++;
+      }
     }
+    return NextResponse.json({ ok: true, saved });
+  } finally {
+    db.close();
   }
-
-  if (updates.length === 0) {
-    return NextResponse.json({ ok: true });
-  }
-
-  await Promise.all(
-    updates.map(({ key, value }) =>
-      prisma.setting.upsert({
-        where: { key },
-        update: { value },
-        create: { key, value },
-      })
-    )
-  );
-
-  return NextResponse.json({ ok: true });
 }

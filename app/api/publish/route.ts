@@ -9,6 +9,22 @@ import { scrapeUrl } from "@/lib/scraper";
 import { rewriteWithGrok } from "@/lib/ai";
 import { publishToWordPress } from "@/lib/wordpress";
 import { runWithConcurrency } from "@/lib/queue";
+import BetterSqlite3 from "better-sqlite3";
+import path from "path";
+
+function getSetting(key: string): string {
+  const dbPath =
+    process.env.NODE_ENV === "production"
+      ? "/data/dev.db"
+      : path.join(process.cwd(), "dev.db");
+  const db = new BetterSqlite3(dbPath);
+  try {
+    const row = db.prepare(`SELECT value FROM "Setting" WHERE key = ?`).get(key) as { value: string } | undefined;
+    return row?.value ?? "";
+  } finally {
+    db.close();
+  }
+}
 
 const MAX_CONCURRENCY = 5;
 
@@ -30,16 +46,13 @@ export async function POST(req: NextRequest) {
     return new Response("sourceUrls and siteIds required", { status: 400 });
   }
 
-  // Load API key + custom prompt from settings
-  const apiKeySetting = await prisma.setting.findUnique({ where: { key: "grok_api_key" } });
-  const promptSetting = await prisma.setting.findUnique({ where: { key: "custom_prompt" } });
-
-  const apiKey = apiKeySetting?.value ?? "";
+  // Load API key + custom prompt directly from SQLite (bypasses Prisma adapter URL issues)
+  const apiKey = getSetting("grok_api_key");
   if (!apiKey) {
     return new Response("Grok API key not configured. Go to Settings and save your OpenRouter API key.", { status: 400 });
   }
 
-  const customPrompt = promptSetting?.value ?? undefined;
+  const customPrompt = getSetting("custom_prompt") || undefined;
 
   // Load sites
   const sites = await prisma.site.findMany({
