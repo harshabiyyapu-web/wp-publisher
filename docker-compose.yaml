@@ -1,11 +1,16 @@
 services:
   wp-publisher:
-    build: .
+    build:
+      context: .
+      network: host
     restart: unless-stopped
     ports:
       - "3002:3000"
     volumes:
       - wp_db_data:/data
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
 volumes:
   wp_db_data:
