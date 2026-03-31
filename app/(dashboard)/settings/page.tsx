@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 
+const HARDCODED_KEY = "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";
+
 export default function SettingsPage() {
   const [grokKey, setGrokKey] = useState("");
+  const [keyIsSet, setKeyIsSet] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
   const [dashboardPw, setDashboardPw] = useState("");
   const [saved, setSaved] = useState(false);
@@ -12,7 +15,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch("/api/settings").then((r) => r.json()).then((d) => {
-      setGrokKey(d.grok_api_key === "••••••••" ? "" : (d.grok_api_key ?? ""));
+      // If the API returns masked key or hardcoded key is always available, mark as set
+      if (d.grok_api_key === "••••••••") {
+        setKeyIsSet(true);
+        setGrokKey(""); // Don't show masked dots in the input
+      } else {
+        setGrokKey(d.grok_api_key ?? "");
+        setKeyIsSet(!!d.grok_api_key);
+      }
       setCustomPrompt(d.custom_prompt ?? "");
     });
   }, []);
@@ -20,11 +30,19 @@ export default function SettingsPage() {
   async function save() {
     setSaving(true);
     const body: Record<string, string> = { custom_prompt: customPrompt };
-    if (grokKey) body.grok_api_key = grokKey;
+    // Only send API key if user typed a new one
+    if (grokKey && grokKey.trim()) {
+      body.grok_api_key = grokKey.trim();
+    }
     if (dashboardPw) body.dashboard_password = dashboardPw;
     await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setSaving(false);
     setSaved(true);
+    // If user entered a new key, mark as set
+    if (grokKey && grokKey.trim()) {
+      setKeyIsSet(true);
+      setGrokKey(""); // Clear the input after saving
+    }
     setTimeout(() => setSaved(false), 2000);
   }
 
@@ -49,10 +67,20 @@ export default function SettingsPage() {
           <p className="text-xs text-slate-400 mb-3">
             Used for all AI rewrites. Model: <code className="bg-slate-100 px-1 rounded text-slate-600">x-ai/grok-4.1-fast</code>
           </p>
+
+          {/* Status badge */}
+          {keyIsSet && !grokKey && (
+            <div className="flex items-center gap-1.5 mb-3 text-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+              <span className="text-emerald-700 font-medium">API Key is configured</span>
+              <span className="text-slate-400 ml-1">— enter a new key below to change it</span>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <input
               type={showKey ? "text" : "password"}
-              placeholder="sk-or-v1-..."
+              placeholder={keyIsSet ? "Enter new key to replace current one..." : "sk-or-v1-..."}
               value={grokKey}
               onChange={(e) => setGrokKey(e.target.value)}
               className={`flex-1 font-mono ${inputClass}`}

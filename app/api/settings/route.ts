@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const HARDCODED_KEY = "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";
 const ALLOWED_KEYS = ["grok_api_key", "custom_prompt", "dashboard_password"];
 
 export async function GET() {
@@ -10,16 +11,18 @@ export async function GET() {
   const map: Record<string, string> = {};
   for (const s of settings) {
     if (s.key === "grok_api_key") {
-      map[s.key] = s.value === "••••••••" ? s.value : (s.value ? "••••••••" : "");
-    } else {
+      // Mask the key — never expose the real value over the wire
+      map[s.key] = s.value ? "••••••••" : "";
+    } else if (s.key !== "dashboard_password") {
       map[s.key] = s.value;
     }
   }
-  
-  // Fallback to environment variable or hardcoded key if not in DB
-  if (!map["grok_api_key"] || map["grok_api_key"] === "") {
+
+  // Always show that a key is available (hardcoded fallback)
+  if (!map["grok_api_key"]) {
     map["grok_api_key"] = "••••••••";
   }
+
   return NextResponse.json(map);
 }
 
@@ -28,8 +31,8 @@ export async function POST(req: NextRequest) {
   const updates: { key: string; value: string }[] = [];
 
   for (const key of ALLOWED_KEYS) {
-    if (key in body && typeof body[key] === "string") {
-      updates.push({ key, value: body[key] });
+    if (key in body && typeof body[key] === "string" && body[key].trim()) {
+      updates.push({ key, value: body[key].trim() });
     }
   }
 

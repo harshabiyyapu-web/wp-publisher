@@ -16,14 +16,16 @@ export interface RewrittenArticle {
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const GROK_MODEL = "x-ai/grok-4.1-fast";
+const DEFAULT_API_KEY = "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";
 
 export async function rewriteWithGrok(
   scrapedContent: string,
   originalTitle: string,
   language: string,
-  apiKey: string,
+  apiKey?: string,
   customPrompt?: string
 ): Promise<RewrittenArticle> {
+  const resolvedKey = apiKey || DEFAULT_API_KEY;
   const { system, user } = getLanguagePrompt(language, customPrompt);
 
   // Prepend title explicitly so AI knows what to preserve
@@ -47,7 +49,7 @@ export async function rewriteWithGrok(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${resolvedKey}`,
       "HTTP-Referer": "https://wp-publisher.local",
       "X-Title": "WP Multi-Site Publisher",
     },
