@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_KEYS = ["grok_api_key", "custom_prompt", "dashboard_password"];
 
 export async function GET() {
   const settings = await prisma.setting.findMany();
   const map: Record<string, string> = {};
   for (const s of settings) {
-    // Mask API keys in GET response — return only whether they're set
     if (s.key === "grok_api_key") {
-      map[s.key] = s.value ? "••••••••" : "";
+      map[s.key] = s.value === "••••••••" ? s.value : (s.value ? "••••••••" : "");
     } else {
       map[s.key] = s.value;
     }
+  }
+  
+  // Fallback to environment variable if not in DB
+  if (!map["grok_api_key"] || map["grok_api_key"] === "") {
+    map["grok_api_key"] = process.env.GROK_API_KEY ? "••••••••" : "";
   }
   return NextResponse.json(map);
 }

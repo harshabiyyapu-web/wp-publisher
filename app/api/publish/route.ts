@@ -31,14 +31,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Load API key + custom prompt from settings
-  const [apiKeySetting, promptSetting] = await Promise.all([
-    prisma.setting.findUnique({ where: { key: "grok_api_key" } }),
-    prisma.setting.findUnique({ where: { key: "custom_prompt" } }),
-  ]);
+  const apiKeySetting = await prisma.setting.findUnique({ where: { key: "grok_api_key" } });
+  const promptSetting = await prisma.setting.findUnique({ where: { key: "custom_prompt" } });
 
-  const apiKey = apiKeySetting?.value ?? "";
+  const apiKey = process.env.GROK_API_KEY || apiKeySetting?.value;
   if (!apiKey) {
-    return new Response("Grok API key not configured in Settings", { status: 400 });
+    return new Response("Grok API key not configured in Settings or Environment", { status: 400 });
   }
 
   const customPrompt = promptSetting?.value ?? undefined;

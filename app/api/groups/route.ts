@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const groups = await prisma.group.findMany({
     include: { sites: { select: { id: true, name: true, language: true } } },
