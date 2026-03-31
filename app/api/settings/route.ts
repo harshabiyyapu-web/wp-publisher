@@ -10,7 +10,7 @@ function getDb() {
   const dbPath =
     process.env.NODE_ENV === "production"
       ? "/data/dev.db"
-      : path.join(process.cwd(), "dev.db");
+      : path.join(process.cwd(), "prisma", "dev.db");
   return new BetterSqlite3(dbPath);
 }
 

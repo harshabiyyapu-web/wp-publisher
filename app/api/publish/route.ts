@@ -16,7 +16,7 @@ function getSetting(key: string): string {
   const dbPath =
     process.env.NODE_ENV === "production"
       ? "/data/dev.db"
-      : path.join(process.cwd(), "dev.db");
+      : path.join(process.cwd(), "prisma", "dev.db");
   const db = new BetterSqlite3(dbPath);
   try {
     const row = db.prepare(`SELECT value FROM "Setting" WHERE key = ?`).get(key) as { value: string } | undefined;

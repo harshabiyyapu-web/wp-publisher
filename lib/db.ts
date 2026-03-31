@@ -5,7 +5,7 @@ import path from "path";
 
 const DB_PATH = process.env.NODE_ENV === "production"
   ? "/data/dev.db"
-  : path.join(process.cwd(), "dev.db");
+  : path.join(process.cwd(), "prisma", "dev.db");
 
 // Create all tables if they don't exist — runs synchronously before Prisma connects.
 // This replaces the need for `prisma db push` or any migration CLI command.
