@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-const HARDCODED_KEY = "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";
-
 export default function SettingsPage() {
   const [grokKey, setGrokKey] = useState("");
   const [keyIsSet, setKeyIsSet] = useState(false);
@@ -15,13 +13,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch("/api/settings").then((r) => r.json()).then((d) => {
-      // If the API returns masked key or hardcoded key is always available, mark as set
       if (d.grok_api_key === "••••••••") {
+        // A real key is saved in DB — show masked, don't populate input
         setKeyIsSet(true);
-        setGrokKey(""); // Don't show masked dots in the input
+        setGrokKey("");
       } else {
-        setGrokKey(d.grok_api_key ?? "");
-        setKeyIsSet(!!d.grok_api_key);
+        // No key saved yet
+        setGrokKey("");
+        setKeyIsSet(false);
       }
       setCustomPrompt(d.custom_prompt ?? "");
     });

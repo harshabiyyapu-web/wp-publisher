@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
   const apiKeySetting = await prisma.setting.findUnique({ where: { key: "grok_api_key" } });
   const promptSetting = await prisma.setting.findUnique({ where: { key: "custom_prompt" } });
 
-  const apiKey = process.env.GROK_API_KEY || apiKeySetting?.value || "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";
+  const apiKey = apiKeySetting?.value ?? "";
   if (!apiKey) {
-    return new Response("Grok API key not configured in Settings or Environment", { status: 400 });
+    return new Response("Grok API key not configured. Go to Settings and save your OpenRouter API key.", { status: 400 });
   }
 
   const customPrompt = promptSetting?.value ?? undefined;

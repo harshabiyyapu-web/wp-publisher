@@ -16,16 +16,15 @@ export interface RewrittenArticle {
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const GROK_MODEL = "x-ai/grok-4.1-fast";
-const DEFAULT_API_KEY = "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";
 
 export async function rewriteWithGrok(
   scrapedContent: string,
   originalTitle: string,
   language: string,
-  apiKey?: string,
+  apiKey: string,
   customPrompt?: string
 ): Promise<RewrittenArticle> {
-  const resolvedKey = apiKey || DEFAULT_API_KEY;
+  const resolvedKey = apiKey;
   const { system, user } = getLanguagePrompt(language, customPrompt);
 
   // Prepend title explicitly so AI knows what to preserve

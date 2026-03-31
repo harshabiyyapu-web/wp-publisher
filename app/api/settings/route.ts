@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-const HARDCODED_KEY = "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";
 const ALLOWED_KEYS = ["grok_api_key", "custom_prompt", "dashboard_password"];
 
 export async function GET() {
@@ -16,11 +15,6 @@ export async function GET() {
     } else if (s.key !== "dashboard_password") {
       map[s.key] = s.value;
     }
-  }
-
-  // Always show that a key is available (hardcoded fallback)
-  if (!map["grok_api_key"]) {
-    map["grok_api_key"] = "••••••••";
   }
 
   return NextResponse.json(map);
@@ -37,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (updates.length === 0) {
-    return NextResponse.json({ error: "No valid settings provided" }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   await Promise.all(
