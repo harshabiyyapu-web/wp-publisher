@@ -16,9 +16,9 @@ export async function GET() {
     }
   }
   
-  // Fallback to environment variable if not in DB
+  // Fallback to environment variable or hardcoded key if not in DB
   if (!map["grok_api_key"] || map["grok_api_key"] === "") {
-    map["grok_api_key"] = process.env.GROK_API_KEY ? "••••••••" : "";
+    map["grok_api_key"] = "••••••••";
   }
   return NextResponse.json(map);
 }
