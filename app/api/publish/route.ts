@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
         await runWithConcurrency(tasks, MAX_CONCURRENCY);
       }
 
-      send({ type: "complete", totalSuccess, totalFail });
+      send({ type: "complete", successCount: totalSuccess, failCount: totalFail });
       controller.close();
     },
   });

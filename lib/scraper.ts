@@ -11,18 +11,35 @@ export interface ScrapedArticle {
   imageAlt: string;
 }
 
-const FETCH_HEADERS = {
+const FETCH_HEADERS: Record<string, string> = {
   "User-Agent":
-    "Mozilla/5.0 (compatible; ContentBot/1.0; +https://example.com)",
-  Accept: "text/html,application/xhtml+xml",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
   "Accept-Language": "en-US,en;q=0.9",
 };
 
+async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: FETCH_HEADERS,
+        redirect: "follow",
+        signal: AbortSignal.timeout(30_000),
+      });
+      return res;
+    } catch (err: any) {
+      lastError = err;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+  }
+  throw new Error(`fetch failed after ${retries + 1} attempts: ${lastError?.message ?? "unknown error"}`);
+}
+
 export async function scrapeUrl(url: string): Promise<ScrapedArticle> {
-  const res = await fetch(url, {
-    headers: FETCH_HEADERS,
-    signal: AbortSignal.timeout(30_000),
-  });
+  const res = await fetchWithRetry(url);
 
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} fetching ${url}`);
